@@ -11,6 +11,8 @@ import { runInstallHook, renderInstallHookResult } from './commands/install-hook
 import { checkDaemonStatus, startDaemon, stopDaemonCli, renderDaemonStatus } from './commands/daemon.js';
 import { sendProcessRequest } from './commands/process.js';
 import { sendNotifyHook } from './commands/notify-hook.js';
+import { runSpoon, renderSpoonResult } from './commands/spoon.js';
+import { runBootstrap, renderBootstrapResult } from './commands/bootstrap.js';
 import { dirnameFromUrl } from './core/paths.js';
 
 const cli = cac('codespoon');
@@ -118,5 +120,22 @@ cli.command('daemon status', 'Check daemon status').action(() => {
   const result = checkDaemonStatus();
   renderDaemonStatus(result);
 });
+
+cli.command('spoon <query>', 'Search knowledge nodes by keyword')
+  .option('--dir <path>', 'Repository root directory (default: cwd)', { default: '.' })
+  .action((query: string, options: { dir?: string }) => {
+    const dir = options.dir!;
+    const hits = runSpoon({ dir, query });
+    renderSpoonResult(hits, query);
+  });
+
+cli.command('bootstrap', 'Generate bootstrap candidates for knowledge nodes')
+  .option('--dir <path>', 'Repository root directory (default: cwd)', { default: '.' })
+  .option('--apply', 'Apply selected candidates from candidate file')
+  .action(async (options: { dir?: string; apply?: boolean }) => {
+    const dir = options.dir!;
+    const result = await runBootstrap({ dir, apply: !!options.apply });
+    renderBootstrapResult(result);
+  });
 
 cli.parse();

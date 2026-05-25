@@ -3,6 +3,7 @@ import {
   buildAutoCommitMessage,
   hasAutoTrailer,
   isKnowledgeDirOnly,
+  updateNodeMetadata,
   AUTO_TRAILER,
 } from '../src/core/commit.js';
 
@@ -44,5 +45,26 @@ describe('isKnowledgeDirOnly', () => {
 
   it('returns false for empty list', () => {
     expect(isKnowledgeDirOnly([], 'docs/knowledge')).toBe(false);
+  });
+});
+
+describe('updateNodeMetadata', () => {
+  it('updates last_updated_commit and last_updated_at', () => {
+    const raw = '---\nid: test\nlast_updated_commit: old-sha\nlast_updated_at: "2020-01-01"\n---\nbody';
+    const result = updateNodeMetadata(raw, 'new-sha-1234');
+    expect(result).not.toBeNull();
+    expect(result).toContain('last_updated_commit: new-sha-1234');
+    expect(result).toContain('body');
+  });
+
+  it('returns null for content without frontmatter', () => {
+    expect(updateNodeMetadata('just text', 'sha')).toBeNull();
+  });
+
+  it('preserves body content', () => {
+    const raw = '---\nid: test\nlast_updated_commit: old\nlast_updated_at: "2020-01-01"\n---\n# Title\n\nBody text.';
+    const result = updateNodeMetadata(raw, 'sha');
+    expect(result).toContain('# Title');
+    expect(result).toContain('Body text.');
   });
 });

@@ -35,6 +35,21 @@ export interface ConfigLoadError {
   message: string;
 }
 
+export class ConfigError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ConfigError';
+  }
+}
+
+export function loadConfigStrict(dir: string): CodespoonConfig {
+  const { config, error } = loadConfig(dir);
+  if (error && error.type !== 'not-found') {
+    throw new ConfigError(error.message);
+  }
+  return config;
+}
+
 export function loadConfig(dir: string): { config: CodespoonConfig; error?: ConfigLoadError } {
   const configPath = resolve(dir, 'codespoon.config.yaml');
   if (!existsSync(configPath)) {
