@@ -7,6 +7,9 @@ import { fileURLToPath } from 'node:url';
 import { runInit, renderInitResult, renderGitignoreHint } from './commands/init.js';
 import { runValidate, renderValidateResult, renderValidateResultJson } from './commands/validate.js';
 import { runBuild, renderBuildResult } from './commands/build.js';
+import { runInstallHook, renderInstallHookResult } from './commands/install-hook.js';
+import { checkDaemonStatus, startDaemon, stopDaemonCli, renderDaemonStatus } from './commands/daemon.js';
+import { sendProcessRequest } from './commands/process.js';
 
 const cli = cac('codespoon');
 
@@ -57,5 +60,52 @@ cli.command('build', 'Regenerate graph.json from node files')
     const result = runBuild({ dir });
     renderBuildResult(result);
   });
+
+cli.command('install-hook', 'Install post-commit hook and AGENTS.md injection')
+  .option('--dir <path>', 'Repository root directory (default: cwd)', { default: '.' })
+  .action((options: { dir?: string }) => {
+    const dir = options.dir!;
+    const result = runInstallHook({ dir });
+    renderInstallHookResult(result);
+  });
+
+cli.command('process <sha>', 'Manually trigger processing for a commit')
+  .option('--dir <path>', 'Repository root directory (default: cwd)', { default: '.' })
+  .action(async (sha: string, options: { dir?: string }) => {
+    const dir = options.dir!;
+    const result = await sendProcessRequest({ dir, sha });
+    if (result.success) {
+      console.log(`✓ ${result.message}`);
+    } else {
+      console.log(`× ${result.message}`);
+    }
+  });
+
+cli.command('daemon', 'Daemon lifecycle management').action(() => {
+  console.log('Usage: codespoon daemon start|stop|status');
+});
+
+cli.command('daemon start', 'Start the daemon').action(() => {
+  const result = startDaemon();
+  if (result.success) {
+    console.log(`✓ ${result.message}`);
+  } else {
+    console.log(`× ${result.message}`);
+  }
+});
+
+cli.command('daemon stop', 'Stop the daemon').action(() => {
+  const result = stopDaemonCli();
+  if (result.success) {
+    console.log(`✓ ${result.message}`);
+  } else {
+    console.log(`× ${result.message}`);
+  }
+});
+
+cli.command('daemon status', 'Check daemon status').action(() => {
+  const result = checkDaemonStatus();
+  renderDaemonStatus(result);
+});
 
 cli.parse();

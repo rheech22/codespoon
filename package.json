@@ -21,6 +21,7 @@
     "gray-matter": "^4.0.3",
     "picocolors": "^1.1.1",
     "picomatch": "^4.0.4",
+    "simple-git": "^3.36.0",
     "yaml": "^2.7.0",
     "zod": "^3.24.0"
   },
