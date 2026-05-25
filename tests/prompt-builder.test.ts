@@ -63,7 +63,7 @@ describe('buildUpdatePrompt', () => {
     const prompt = buildUpdatePrompt({ node: makeNode(), changedFiles: [], config, isRetry: false });
     expect(prompt).toContain('Required sections:');
     expect(prompt).toContain('No absolute paths in body');
-    expect(prompt).toContain('Sources paths must be relative');
+    expect(prompt).toContain('Source paths must be relative to repo root');
   });
 
   it('includes do-not-change-id instruction', () => {

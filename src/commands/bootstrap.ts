@@ -12,7 +12,7 @@ import { runAgentLoop } from '../daemon/agent-loop.js';
 import { OpencodeAdapter } from '../adapters/agent/opencode.js';
 import { validateNodeContent } from '../core/validation.js';
 import { generateGraph } from '../core/graph.js';
-import { buildAutoCommitMessage, AUTO_TRAILER } from '../core/commit.js';
+import { buildAutoCommitMessage } from '../core/commit.js';
 
 export interface BootstrapOptions {
   dir: string;
@@ -79,12 +79,12 @@ export async function runBootstrap(options: BootstrapOptions): Promise<Bootstrap
     lines.push('');
   }
 
-  writeFileSync(candidatesPath, lines.join('\n'), 'utf-8');
-
   if (options.apply) {
     const applied = await applyCandidates(root, config, allCandidates, candidatesPath);
     return { candidates: allCandidates, candidatesPath, applied };
   }
+
+  writeFileSync(candidatesPath, lines.join('\n'), 'utf-8');
 
   return { candidates: allCandidates, candidatesPath };
 }
@@ -177,7 +177,7 @@ async function applyCandidates(
   modifiedPaths.push(relative(root, gp));
 
   await vcs.stage(modifiedPaths);
-  const message = `${buildAutoCommitMessage({ shortOriginalSha: 'bootstrap', affectedNodeIds: selectedIds })}\n\n${AUTO_TRAILER}`;
+  const message = buildAutoCommitMessage({ shortOriginalSha: 'bootstrap', affectedNodeIds: selectedIds });
   await vcs.commit(message);
 
   console.log(pc.green(`✓ ${appliedCount}개 노드 생성 및 커밋 완료`));

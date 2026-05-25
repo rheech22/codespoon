@@ -145,7 +145,7 @@ function extractAbsolutePathsFromLine(line: string): string[] {
     const target = m[1];
     const firstSpace = target.search(/\s/);
     const url = firstSpace === -1 ? target : target.slice(0, firstSpace);
-    if (url.startsWith('/') && hasFileExtension(url)) {
+    if (url.startsWith('/') && !url.startsWith('//') && hasFileExtension(url)) {
       found.push(url);
     }
   }
@@ -154,7 +154,7 @@ function extractAbsolutePathsFromLine(line: string): string[] {
   const candidates = noLinkText.match(/\/[^\s()\][{}]+\.\w+/g) || [];
   for (const c of candidates) {
     const clean = c.replace(/[`'",;.!?\)>]+$/, '');
-    if (isAbsolute(clean) && hasFileExtension(clean)) {
+    if (!clean.startsWith('//') && isAbsolute(clean) && hasFileExtension(clean)) {
       found.push(clean);
     }
   }

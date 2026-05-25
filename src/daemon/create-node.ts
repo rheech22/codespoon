@@ -53,8 +53,8 @@ export function buildCreatePrompt(opts: CreatePromptOptions): string {
   parts.push(`## Format Requirements`);
   parts.push(`- Frontmatter must be valid YAML between --- markers`);
   parts.push(`- Required sections: ${REQUIRED_SECTIONS.join(', ')}`);
-  parts.push(`- Sources paths must be relative to repo root`);
-  parts.push(`- No absolute paths in body`);
+  parts.push(`- Source paths must be relative to repo root (no leading /)`);
+  parts.push(`- No absolute paths in body (paths starting with / like /Users/...)`);
   parts.push(`- Max node length: ${config.max_node_chars} chars`);
   parts.push(``);
 

@@ -2,7 +2,8 @@ import { resolve, relative } from 'node:path';
 import fg from 'fast-glob';
 import pc from 'picocolors';
 import { validateNodeFile, summarizeResults } from '../core/validation.js';
-import { loadConfig } from '../core/config.js';
+import { loadConfigStrict } from '../core/config.js';
+import { ConfigError } from '../core/config.js';
 import { nodesDir } from '../core/paths.js';
 import type { ValidationResult, ValidateSummary } from '../core/validation.js';
 
@@ -20,9 +21,11 @@ export interface ValidateRunResult {
 
 export function runValidate(options: ValidateOptions): ValidateRunResult {
   const root = resolve(options.dir);
-  const { config, error } = loadConfig(root);
-  if (error && error.type !== 'not-found') {
-    return { exitCode: 1, summary: { total: 0, passed: 0, failed: 0, errors: [{ type: 'error', message: error.message }], warnings: [] }, results: [] };
+  let config;
+  try { config = loadConfigStrict(root); }
+  catch (e) {
+    const msg = e instanceof ConfigError ? e.message : String(e);
+    return { exitCode: 1, summary: { total: 0, passed: 0, failed: 0, errors: [{ type: 'error', message: msg }], warnings: [] }, results: [] };
   }
 
   let targets: string[];

@@ -94,32 +94,21 @@ cli.command('notify-hook <sha>', 'Notify daemon from post-commit hook (internal)
     }
   });
 
-cli.command('daemon', 'Daemon lifecycle management').action(() => {
-  console.log('Usage: codespoon daemon start|stop|status');
-});
-
-cli.command('daemon start', 'Start the daemon').action(() => {
-  const result = startDaemon();
-  if (result.success) {
-    console.log(`${pc.green('✓')} ${result.message}`);
-  } else {
-    console.log(`${pc.red('×')} ${result.message}`);
-  }
-});
-
-cli.command('daemon stop', 'Stop the daemon').action(() => {
-  const result = stopDaemonCli();
-  if (result.success) {
-    console.log(`${pc.green('✓')} ${result.message}`);
-  } else {
-    console.log(`${pc.red('×')} ${result.message}`);
-  }
-});
-
-cli.command('daemon status', 'Check daemon status').action(() => {
-  const result = checkDaemonStatus();
-  renderDaemonStatus(result);
-});
+cli.command('daemon [action]', 'Daemon lifecycle management')
+  .action((action: string | undefined) => {
+    if (action === 'start') {
+      const result = startDaemon();
+      console.log(result.success ? `${pc.green('✓')} ${result.message}` : `${pc.red('×')} ${result.message}`);
+    } else if (action === 'stop') {
+      const result = stopDaemonCli();
+      console.log(result.success ? `${pc.green('✓')} ${result.message}` : `${pc.red('×')} ${result.message}`);
+    } else if (action === 'status') {
+      const result = checkDaemonStatus();
+      renderDaemonStatus(result);
+    } else {
+      console.log('Usage: codespoon daemon start|stop|status');
+    }
+  });
 
 cli.command('spoon <query>', 'Search knowledge nodes by keyword')
   .option('--dir <path>', 'Repository root directory (default: cwd)', { default: '.' })

@@ -1,7 +1,7 @@
 import { writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import pc from 'picocolors';
-import { loadConfig } from '../core/config.js';
+import { loadConfigStrict, ConfigError } from '../core/config.js';
 import { generateGraph } from '../core/graph.js';
 import type { Graph } from '../core/types.js';
 
@@ -16,9 +16,10 @@ export interface BuildRunResult {
 
 export function runBuild(options: BuildOptions): BuildRunResult {
   const root = resolve(options.dir);
-  const { config, error } = loadConfig(root);
-  if (error && error.type !== 'not-found') {
-    throw new Error(error.message);
+  let config;
+  try { config = loadConfigStrict(root); }
+  catch (e) {
+    throw new Error(e instanceof ConfigError ? e.message : String(e));
   }
 
   const graph = generateGraph(root, config);

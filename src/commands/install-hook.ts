@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 import pc from 'picocolors';
 import { buildPostCommitHook } from '../templates/hooks/post-commit.js';
 import { AGENTS_MD_INJECTION } from '../templates/agents-md-injection.js';
-import { loadConfig } from '../core/config.js';
+import { loadConfigStrict, ConfigError } from '../core/config.js';
 import { socketPath } from '../daemon/lifecycle.js';
 
 export interface InstallHookOptions {
@@ -26,9 +26,10 @@ export function runInstallHook(options: InstallHookOptions): InstallHookResult {
     errors: [],
   };
 
-  const { config, error } = loadConfig(root);
-  if (error && error.type !== 'not-found') {
-    result.errors.push(error.message);
+  let config;
+  try { config = loadConfigStrict(root); }
+  catch (e) {
+    result.errors.push(e instanceof ConfigError ? e.message : String(e));
     return result;
   }
   const knowledgeDir = config.knowledge_dir;
@@ -83,6 +84,7 @@ export function runInstallHook(options: InstallHookOptions): InstallHookResult {
 export function renderInstallHookResult(result: InstallHookResult): void {
   if (result.hookInstalled) {
     console.log(`${pc.green('✓')} .git/hooks/post-commit 설치됨`);
+    console.log(`${pc.cyan('→')} codespoon이 PATH에 있는지 확인하세요: ${pc.dim('`which codespoon`')}`);
   }
   if (result.agentsMdUpdated) {
     console.log(`${pc.green('✓')} AGENTS.md에 spoon 안내 추가됨`);

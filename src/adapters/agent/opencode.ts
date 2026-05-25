@@ -9,7 +9,6 @@ export class OpencodeAdapter implements AgentAdapter {
       const proc = spawn('opencode', [
         'run',
         '--dir', opts.dir,
-        '--format', 'json',
         '--model', opts.model,
         prompt,
       ], {

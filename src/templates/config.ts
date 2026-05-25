@@ -28,7 +28,7 @@ generated_paths:
 # AI 에이전트 설정
 agent:
   cli: opencode
-  model: anthropic/claude-sonnet-4-6
+  model: openai/gpt-5.5
   invoke_timeout_seconds: 300
 
 # VCS 설정
