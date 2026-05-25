@@ -1,118 +1,23 @@
 import { describe, it, expect, vi } from 'vitest';
-import { parseAgentOutput, extractUpdatedFilename, processNode } from '../src/daemon/process-node.js';
+import { mkdtempSync, writeFileSync, mkdirSync, existsSync, readFileSync } from 'node:fs';
+import { resolve, join } from 'node:path';
+import { tmpdir } from 'node:os';
+import { processNode } from '../src/daemon/process-node.js';
 import type { ProcessNodeOptions } from '../src/daemon/process-node.js';
 import { DEFAULTS } from '../src/core/config.js';
-import type { AgentAdapter, InvokeResult } from '../src/adapters/agent/index.js';
+import type { AgentAdapter, InvokeOptions, InvokeResult } from '../src/adapters/agent/index.js';
 
-describe('parseAgentOutput', () => {
-  it('parses valid markdown with frontmatter', () => {
-    const raw = '---\nid: test\nkind: domain\n---\n# Body';
-    const result = parseAgentOutput(raw);
-    expect(result).not.toBeNull();
-    expect(result!.frontmatter.id).toBe('test');
-    expect(result!.body).toContain('# Body');
-  });
-
-  it('returns null for plain text', () => {
-    expect(parseAgentOutput('just text')).toBeNull();
-  });
-
-  it('returns null for empty frontmatter', () => {
-    expect(parseAgentOutput('---\n---\nbody')).toBeNull();
-  });
-
-  it('returns null for empty string', () => {
-    expect(parseAgentOutput('')).toBeNull();
-  });
-});
-
-describe('extractUpdatedFilename', () => {
-  it('extracts id from frontmatter', () => {
-    const raw = '---\nid: my-node\nkind: domain\n---\nbody';
-    expect(extractUpdatedFilename(raw, 'default')).toBe('my-node.md');
-  });
-
-  it('falls back to default if no frontmatter', () => {
-    expect(extractUpdatedFilename('no frontmatter', 'default')).toBe('default.md');
-  });
-
-  it('falls back to default if no id in frontmatter', () => {
-    const raw = '---\nkind: domain\n---\nbody';
-    expect(extractUpdatedFilename(raw, 'default')).toBe('default.md');
-  });
-});
-
-describe('processNode', () => {
-  function makeMockAgent(result: Partial<InvokeResult>): AgentAdapter {
-    return {
-      invoke: vi.fn().mockResolvedValue({
-        stdout: '',
-        stderr: '',
-        exitCode: 0,
-        durationMs: 100,
-        ...result,
-      }),
-    };
-  }
-
-  function makeOptions(overrides?: Partial<ProcessNodeOptions>): ProcessNodeOptions {
-    return {
-      nodePath: 'docs/knowledge/nodes/test.md',
-      node: {
-        frontmatter: {
-          id: 'test',
-          kind: 'domain',
-          status: 'auto-updated',
-          confidence: 'high',
-          scope: { include: ['src/**'], exclude: [] },
-          sources: [{ path: 'src/foo.ts', symbols: ['Foo'] }],
-          relations: [],
-          last_updated_commit: 'abc123',
-          last_updated_at: '2025-01-01',
-        },
-        body: '# Test\n\n## Summary\n\nContent.',
-        title: 'Test',
-        path: 'docs/knowledge/nodes/test.md',
-      },
-      changedFiles: [{ path: 'src/foo.ts', status: 'modified' }],
-      config: { ...DEFAULTS, retry_count: 2 },
-      agent: makeMockAgent({}),
-      repoRoot: '/tmp/test',
-      runDir: '/tmp/test/.codespoon/runs/abc123',
-      ...overrides,
-    };
-  }
-
-  it('handles empty agent output', async () => {
-    const opts = makeOptions({
-      agent: makeMockAgent({ stdout: '' }),
-    });
-    const result = await processNode(opts);
-    expect(result.success).toBe(false);
-    expect(result.error).toContain('empty output');
-  });
-
-  it('handles non-markdown agent output', async () => {
-    const opts = makeOptions({
-      agent: makeMockAgent({ stdout: 'just some text' }),
-    });
-    const result = await processNode(opts);
-    expect(result.success).toBe(false);
-    expect(result.error).toContain('Validation failed after 2 attempts');
-  });
-
-  it('succeeds on valid agent output', async () => {
-    const validOutput = `---
+const VALID_NODE = `---
 id: test
 kind: domain
 status: auto-updated
 confidence: high
 scope:
   include:
-    - src/**
+    - src/foo.ts
   exclude: []
 sources:
-  - path: foo.ts
+  - path: src/foo.ts
     symbols:
       - Foo
 relations: []
@@ -151,16 +56,115 @@ None.
 
 ## Open Questions
 
-None.`;
+None.
+`;
 
-    const opts = makeOptions({
-      agent: makeMockAgent({ stdout: validOutput }),
-    });
-    const result = await processNode(opts);
-    if (!result.success) {
-      console.log('processNode error:', result.error);
-    }
+function setupRepo(): { repo: string; nodePath: string; runDir: string } {
+  const repo = mkdtempSync(join(tmpdir(), 'process-node-test-'));
+  mkdirSync(resolve(repo, 'docs/knowledge/nodes'), { recursive: true });
+  mkdirSync(resolve(repo, 'src'), { recursive: true });
+  writeFileSync(resolve(repo, 'src/foo.ts'), 'export class Foo {}', 'utf-8');
+  const nodePath = resolve(repo, 'docs/knowledge/nodes/test.md');
+  writeFileSync(nodePath, VALID_NODE, 'utf-8');
+  const runDir = resolve(repo, '.codespoon/runs/test');
+  return { repo, nodePath, runDir };
+}
+
+/**
+ * Mock agent that simulates file writes per attempt.
+ *   writes[i] is the file content the agent "writes" on attempt i+1.
+ *   If writes[i] is null, agent does nothing (no file write).
+ */
+function makeFileWritingAgent(nodePath: string, writes: (string | null)[]): AgentAdapter {
+  let attemptIdx = 0;
+  return {
+    invoke: vi.fn().mockImplementation(async (_prompt: string, _opts: InvokeOptions): Promise<InvokeResult> => {
+      const content = writes[attemptIdx];
+      attemptIdx++;
+      // Bump mtime slightly even when writing the same content, so mtime check detects the write.
+      await new Promise(r => setTimeout(r, 10));
+      if (content !== null && content !== undefined) {
+        writeFileSync(nodePath, content, 'utf-8');
+      }
+      return { stdout: '', stderr: '', exitCode: 0, durationMs: 100 };
+    }),
+  };
+}
+
+function makeOptions(repo: string, nodePath: string, runDir: string, agent: AgentAdapter): ProcessNodeOptions {
+  return {
+    nodePath,
+    node: {
+      frontmatter: {
+        id: 'test',
+        kind: 'domain',
+        status: 'auto-updated',
+        confidence: 'high',
+        scope: { include: ['src/foo.ts'], exclude: [] },
+        sources: [{ path: 'src/foo.ts', symbols: ['Foo'] }],
+        relations: [],
+        last_updated_commit: 'abc123',
+        last_updated_at: '2025-01-01',
+      },
+      body: '# Test\n\n## Summary\n\nOriginal.',
+      title: 'Test',
+      path: 'docs/knowledge/nodes/test.md',
+    },
+    changedFiles: [{ path: 'src/foo.ts', status: 'modified' }],
+    config: { ...DEFAULTS, retry_count: 2 },
+    agent,
+    repoRoot: repo,
+    runDir,
+  };
+}
+
+describe('processNode (file-write flow)', () => {
+  it('succeeds when agent writes a valid file', async () => {
+    const { repo, nodePath, runDir } = setupRepo();
+    const agent = makeFileWritingAgent(nodePath, [VALID_NODE]);
+
+    const result = await processNode(makeOptions(repo, nodePath, runDir, agent));
+
     expect(result.success).toBe(true);
-    expect(result.finalContent).toContain('Updated content');
+    expect(result.attempts).toBe(1);
+    expect(existsSync(nodePath)).toBe(true);
+    expect(readFileSync(nodePath, 'utf-8')).toContain('Updated content');
+  });
+
+  it('fails when agent does not write the file', async () => {
+    const { repo, nodePath, runDir } = setupRepo();
+    const originalContent = readFileSync(nodePath, 'utf-8');
+    const agent = makeFileWritingAgent(nodePath, [null, null]);
+
+    const result = await processNode(makeOptions(repo, nodePath, runDir, agent));
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('did not write');
+    expect(readFileSync(nodePath, 'utf-8')).toBe(originalContent);
+    expect(existsSync(resolve(runDir, 'test.failed.md'))).toBe(true);
+  });
+
+  it('rejects when agent changes the id and restores original', async () => {
+    const { repo, nodePath, runDir } = setupRepo();
+    const originalContent = readFileSync(nodePath, 'utf-8');
+    const changedIdContent = VALID_NODE.replace('id: test', 'id: hijacked');
+    const agent = makeFileWritingAgent(nodePath, [changedIdContent, changedIdContent]);
+
+    const result = await processNode(makeOptions(repo, nodePath, runDir, agent));
+
+    expect(result.success).toBe(false);
+    expect(readFileSync(nodePath, 'utf-8')).toBe(originalContent);
+  });
+
+  it('recovers via retry feedback', async () => {
+    const { repo, nodePath, runDir } = setupRepo();
+    const invalidContent = '# Just a title with no frontmatter';
+    const agent = makeFileWritingAgent(nodePath, [invalidContent, VALID_NODE]);
+
+    const result = await processNode(makeOptions(repo, nodePath, runDir, agent));
+
+    expect(result.success).toBe(true);
+    expect(result.attempts).toBe(2);
+    expect(readFileSync(nodePath, 'utf-8')).toContain('Updated content');
   });
 });

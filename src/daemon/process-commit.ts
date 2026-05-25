@@ -135,12 +135,14 @@ export async function processCommit(opts: ProcessCommitOptions): Promise<Process
       runDir,
     });
 
-    if (nodeResult.success && nodeResult.finalContent) {
-      const updated = updateNodeMetadata(nodeResult.finalContent, sha);
-      const contentToWrite = updated ?? nodeResult.finalContent;
+    if (nodeResult.success) {
+      // Agent wrote the file directly. Apply metadata post-processing in place.
+      const written = readFileSync(nodePath, 'utf-8');
+      const stamped = updateNodeMetadata(written, sha);
+      const finalContent = stamped ?? written;
 
-      if (raw !== contentToWrite) {
-        writeFileSync(nodePath, contentToWrite, 'utf-8');
+      if (raw !== finalContent) {
+        writeFileSync(nodePath, finalContent, 'utf-8');
         modifiedPaths.push(relative(repoRoot, nodePath));
       }
     }

@@ -1,8 +1,9 @@
 import matter from 'gray-matter';
+import { readFileSync } from 'node:fs';
 import type { NodeDocument } from '../core/types.js';
 import type { CodespoonConfig } from '../core/config.js';
 import type { ValidationMessage } from '../core/validation.js';
-import { validateNodeContent } from '../core/validation.js';
+import { validateNodeFile } from '../core/validation.js';
 import { buildUpdatePrompt } from './prompt-builder.js';
 import type { AgentAdapter } from '../adapters/agent/index.js';
 import type { ChangedFile } from '../adapters/vcs/index.js';
@@ -22,61 +23,49 @@ export interface ProcessNodeResult {
   success: boolean;
   needsReview: boolean;
   attempts: number;
-  finalContent?: string;
   error?: string;
-}
-
-export function parseAgentOutput(raw: string): { frontmatter: Record<string, unknown>; body: string } | null {
-  const trimmed = raw.trim();
-  if (!trimmed.startsWith('---')) return null;
-
-  try {
-    const parsed = matter(trimmed);
-    if (!parsed.data || Object.keys(parsed.data).length === 0) return null;
-    return {
-      frontmatter: parsed.data as Record<string, unknown>,
-      body: parsed.content,
-    };
-  } catch {
-    return null;
-  }
-}
-
-export function extractUpdatedFilename(raw: string, defaultId: string): string {
-  const parsed = parseAgentOutput(raw);
-  if (parsed && parsed.frontmatter.id && typeof parsed.frontmatter.id === 'string') {
-    return `${parsed.frontmatter.id}.md`;
-  }
-  return `${defaultId}.md`;
 }
 
 export async function processNode(opts: ProcessNodeOptions): Promise<ProcessNodeResult> {
   const { nodePath, node, changedFiles, config, agent, repoRoot, runDir } = opts;
+  const expectedId = node.frontmatter.id;
 
   return runAgentLoop({
     buildPrompt: (previousErrors?: ValidationMessage[]) => buildUpdatePrompt({
       node,
       changedFiles,
       config,
+      nodePath,
       validationErrors: previousErrors,
       isRetry: !!previousErrors,
     }),
     agent,
-    validate: (output) => {
-      const result = validateNodeContent(output, { rootDir: repoRoot, config, filePath: nodePath });
+    validate: () => {
+      const result = validateNodeFile(nodePath, repoRoot, config);
       if (!result.passed) return result;
-      const parsed = parseAgentOutput(output);
-      if (parsed && parsed.frontmatter.id !== node.frontmatter.id) {
-        return {
-          passed: false,
-          messages: [{ type: 'error', message: `id must remain "${node.frontmatter.id}". Agent changed it to "${String(parsed.frontmatter.id)}"` }],
-        };
+      // Enforce id immutability: agent must not change the node id.
+      try {
+        const raw = readFileSync(nodePath, 'utf-8');
+        const parsed = matter(raw);
+        const writtenId = (parsed.data as { id?: unknown }).id;
+        if (writtenId !== expectedId) {
+          return {
+            passed: false,
+            messages: [{
+              type: 'error',
+              message: `id must remain "${expectedId}". Agent changed it to "${String(writtenId)}"`,
+            }],
+          };
+        }
+      } catch {
+        // If we can't read/parse, validateNodeFile would have caught it.
       }
       return result;
     },
     config,
     repoRoot,
     runDir,
-    identifier: node.frontmatter.id,
+    identifier: expectedId,
+    expectedPath: nodePath,
   });
 }

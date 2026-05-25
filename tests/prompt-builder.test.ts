@@ -5,6 +5,7 @@ import type { NodeDocument } from '../src/core/types.js';
 import type { ChangedFile } from '../src/adapters/vcs/index.js';
 
 const config = DEFAULTS;
+const nodePath = 'docs/knowledge/nodes/test-node.md';
 
 function makeNode(overrides?: Partial<NodeDocument>): NodeDocument {
   return {
@@ -21,18 +22,24 @@ function makeNode(overrides?: Partial<NodeDocument>): NodeDocument {
     },
     body: '# Test Node\n\n## Summary\n\nTest summary.',
     title: 'Test Node',
-    path: 'docs/knowledge/nodes/test-node.md',
+    path: nodePath,
     ...overrides,
   };
 }
 
 describe('buildUpdatePrompt', () => {
   it('includes node ID and current content', () => {
-    const node = makeNode();
-    const prompt = buildUpdatePrompt({ node, changedFiles: [], config, isRetry: false });
+    const prompt = buildUpdatePrompt({ node: makeNode(), changedFiles: [], config, nodePath, isRetry: false });
     expect(prompt).toContain('test-node');
     expect(prompt).toContain('Test Node');
     expect(prompt).toContain('## Summary');
+  });
+
+  it('includes file path to edit', () => {
+    const prompt = buildUpdatePrompt({ node: makeNode(), changedFiles: [], config, nodePath, isRetry: false });
+    expect(prompt).toContain('File Path to Edit');
+    expect(prompt).toContain(nodePath);
+    expect(prompt).toContain('edit/write tool');
   });
 
   it('includes changed files', () => {
@@ -40,7 +47,7 @@ describe('buildUpdatePrompt', () => {
       { path: 'src/foo.ts', status: 'modified' },
       { path: 'src/bar.ts', status: 'added' },
     ];
-    const prompt = buildUpdatePrompt({ node: makeNode(), changedFiles, config, isRetry: false });
+    const prompt = buildUpdatePrompt({ node: makeNode(), changedFiles, config, nodePath, isRetry: false });
     expect(prompt).toContain('modified: src/foo.ts');
     expect(prompt).toContain('added: src/bar.ts');
   });
@@ -49,32 +56,31 @@ describe('buildUpdatePrompt', () => {
     const errors = [
       { type: 'error' as const, message: 'Missing required section: "Entry Points"' },
     ];
-    const prompt = buildUpdatePrompt({ node: makeNode(), changedFiles: [], config, validationErrors: errors, isRetry: true });
+    const prompt = buildUpdatePrompt({ node: makeNode(), changedFiles: [], config, nodePath, validationErrors: errors, isRetry: true });
     expect(prompt).toContain('Missing required section: "Entry Points"');
     expect(prompt).toContain('Previous Validation Errors');
   });
 
   it('does not include validation errors section when not retry', () => {
-    const prompt = buildUpdatePrompt({ node: makeNode(), changedFiles: [], config, isRetry: false });
+    const prompt = buildUpdatePrompt({ node: makeNode(), changedFiles: [], config, nodePath, isRetry: false });
     expect(prompt).not.toContain('Previous Validation Errors');
   });
 
   it('includes format requirements', () => {
-    const prompt = buildUpdatePrompt({ node: makeNode(), changedFiles: [], config, isRetry: false });
-    expect(prompt).toContain('Required sections:');
-    expect(prompt).toContain('No absolute paths in body');
-    expect(prompt).toContain('Source paths must be relative to repo root');
+    const prompt = buildUpdatePrompt({ node: makeNode(), changedFiles: [], config, nodePath, isRetry: false });
+    expect(prompt).toContain('Required sections');
+    expect(prompt).toContain('No absolute paths anywhere');
+    expect(prompt).toContain('relative to repo root');
+    expect(prompt).toContain('Do NOT strip prefixes');
   });
 
   it('includes do-not-change-id instruction', () => {
-    const node = makeNode();
-    const prompt = buildUpdatePrompt({ node, changedFiles: [], config, isRetry: false });
+    const prompt = buildUpdatePrompt({ node: makeNode(), changedFiles: [], config, nodePath, isRetry: false });
     expect(prompt).toContain('Do not change the `id` field');
   });
 
   it('includes config max_node_chars', () => {
-    const node = makeNode();
-    const prompt = buildUpdatePrompt({ node, changedFiles: [], config: { ...config, max_node_chars: 5000 }, isRetry: false });
-    expect(prompt).toContain('Max node length: 5000 chars');
+    const prompt = buildUpdatePrompt({ node: makeNode(), changedFiles: [], config: { ...config, max_node_chars: 5000 }, nodePath, isRetry: false });
+    expect(prompt).toContain('Max file length: 5000 chars');
   });
 });

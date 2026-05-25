@@ -28,7 +28,7 @@ generated_paths:
 # AI 에이전트 설정
 agent:
   cli: opencode
-  model: openai/gpt-5.5
+  model: synthetic/hf:zai-org/GLM-5.1
   invoke_timeout_seconds: 300
 
 # VCS 설정

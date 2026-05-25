@@ -111,6 +111,17 @@ function makeMockAgent(result: Partial<InvokeResult>): AgentAdapter {
   };
 }
 
+/** Agent mock that writes given content to the target path on each invoke. */
+function makeFileWritingAgent(targetPath: string, content: string): AgentAdapter {
+  return {
+    invoke: vi.fn().mockImplementation(async () => {
+      await new Promise(r => setTimeout(r, 10));
+      writeFileSync(targetPath, content, 'utf-8');
+      return { stdout: '', stderr: '', exitCode: 0, durationMs: 100 };
+    }),
+  };
+}
+
 describe('processCommit', () => {
   let repoDir: string;
 
@@ -210,11 +221,12 @@ None.
 None.
 `;
 
+    const nodePath = resolve(repoDir, 'docs/knowledge/nodes/test-node.md');
     const result = await processCommit({
       repoRoot: repoDir,
       sha: 'abc1234',
       vcs: makeMockVcs([{ path: 'foo.ts', status: 'modified' }]),
-      agent: makeMockAgent({ stdout: updatedNodeContent }),
+      agent: makeFileWritingAgent(nodePath, updatedNodeContent),
     });
 
     expect(result.affectedCount).toBe(1);
@@ -223,7 +235,7 @@ None.
     expect(result.processed[0].needsReview).toBe(false);
     expect(result.autoCommitted).toBe(true);
 
-    const nodeContent = readFileSync(resolve(repoDir, 'docs/knowledge/nodes/test-node.md'), 'utf-8');
+    const nodeContent = readFileSync(nodePath, 'utf-8');
     expect(nodeContent).toContain('Updated by agent');
   });
 });

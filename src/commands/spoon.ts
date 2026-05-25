@@ -51,6 +51,8 @@ export function runSpoon(options: SpoonOptions): SpoonHit[] {
     const sourceSymbols = fm.sources.flatMap(s => s.symbols.map(sym => sym.toLowerCase()));
     const titleLower = title.toLowerCase();
     const idLower = fm.id.toLowerCase();
+    const bodyLower = parsed.content.toLowerCase();
+    let firstBodyMatchPos = -1;
 
     for (const word of queryWords) {
       if (titleLower.includes(word)) {
@@ -75,12 +77,22 @@ export function runSpoon(options: SpoonOptions): SpoonHit[] {
           break;
         }
       }
+      // Body match — lower weight so it doesn't drown out structural matches.
+      // Important for non-English queries since title/id/symbols are usually English.
+      const bodyPos = bodyLower.indexOf(word);
+      if (bodyPos >= 0) {
+        score += 1;
+        matchDetails.push(`body:${word}`);
+        if (firstBodyMatchPos === -1 || bodyPos < firstBodyMatchPos) {
+          firstBodyMatchPos = bodyPos;
+        }
+      }
     }
 
     if (score === 0) continue;
 
     const body = parsed.content.trim();
-    const snippet = body.length > 200 ? body.slice(0, 200) + '...' : body;
+    const snippet = buildSnippet(body, firstBodyMatchPos);
 
     hits.push({
       nodeId: fm.id,
@@ -94,6 +106,24 @@ export function runSpoon(options: SpoonOptions): SpoonHit[] {
 
   hits.sort((a, b) => b.score - a.score);
   return hits.slice(0, 3);
+}
+
+/**
+ * Return a ~200-char snippet of the body. If `matchPos` >= 0, center the
+ * window around it so the matched keyword is visible. Otherwise take the
+ * beginning of the body.
+ */
+function buildSnippet(body: string, matchPos: number): string {
+  const WINDOW = 200;
+  if (body.length <= WINDOW) return body;
+
+  if (matchPos < 0) return body.slice(0, WINDOW) + '...';
+
+  const start = Math.max(0, matchPos - 60);
+  const end = Math.min(body.length, start + WINDOW);
+  const prefix = start > 0 ? '...' : '';
+  const suffix = end < body.length ? '...' : '';
+  return prefix + body.slice(start, end).trim() + suffix;
 }
 
 export function renderSpoonResult(hits: SpoonHit[], query: string): void {

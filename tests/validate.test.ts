@@ -141,3 +141,89 @@ describe('summarizeResults', () => {
     expect(summary.warnings).toHaveLength(1);
   });
 });
+
+describe('checkBodyAbsolutePaths — substring false positives', () => {
+
+  it('does not flag relative path that contains a "/x/y.ts" substring', () => {
+    const raw = `---
+id: x
+kind: domain
+status: auto-updated
+confidence: high
+scope:
+  include:
+    - src
+sources:
+  - path: apps/web/foo.ts
+    symbols: [Foo]
+last_updated_commit: abc
+last_updated_at: 2026-05-25
+---
+
+# X
+
+## Summary
+
+The file \`apps/web/app/chat/page.tsx\` is the entry.
+
+## When To Use This Node
+
+## Entry Points
+
+## Key Code Paths
+
+## Data And Event Flow
+
+## Invariants
+
+## Source Trace
+
+## Open Questions
+`;
+    const result = validateNodeContent(raw, { rootDir: fixturesDir, config });
+    const absErrors = result.messages.filter(m => m.message.startsWith('Absolute path'));
+    expect(absErrors).toHaveLength(0);
+  });
+
+  it('still flags genuinely absolute paths', () => {
+    const raw = `---
+id: x
+kind: domain
+status: auto-updated
+confidence: high
+scope:
+  include:
+    - src
+sources:
+  - path: src/foo.ts
+    symbols: [Foo]
+last_updated_commit: abc
+last_updated_at: 2026-05-25
+---
+
+# X
+
+## Summary
+
+Saved at /Users/demian/foo.ts here.
+
+## When To Use This Node
+
+## Entry Points
+
+## Key Code Paths
+
+## Data And Event Flow
+
+## Invariants
+
+## Source Trace
+
+## Open Questions
+`;
+    const result = validateNodeContent(raw, { rootDir: fixturesDir, config });
+    const absErrors = result.messages.filter(m => m.message.startsWith('Absolute path'));
+    expect(absErrors.length).toBeGreaterThanOrEqual(1);
+    expect(absErrors[0].message).toContain('/Users/demian/foo.ts');
+  });
+});

@@ -18,7 +18,7 @@ export const ConfigSchema = z.object({
   generated_paths: z.array(z.string()).default(['src/api/**']),
   agent: z.object({
     cli: z.string().default('opencode'),
-    model: z.string().default('openai/gpt-5.5'),
+    model: z.string().default('synthetic/hf:zai-org/GLM-5.1'),
     invoke_timeout_seconds: z.number().default(300),
   }).default({}),
   vcs: z.object({

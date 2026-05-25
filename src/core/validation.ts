@@ -151,7 +151,10 @@ function extractAbsolutePathsFromLine(line: string): string[] {
   }
 
   const noLinkText = line.replace(/\[([^\]]*)\]\([^)]*\)/g, '');
-  const candidates = noLinkText.match(/\/[^\s()\][{}]+\.\w+/g) || [];
+  // Require the path to start at a real boundary — not preceded by a word char
+  // or another slash. This avoids treating "/web/foo.ts" inside "apps/web/foo.ts"
+  // as an absolute path (it's a substring of a valid relative path).
+  const candidates = noLinkText.match(/(?<![\w/])\/[^\s()\][{}]+\.\w+/g) || [];
   for (const c of candidates) {
     const clean = c.replace(/[`'",;.!?\)>]+$/, '');
     if (!clean.startsWith('//') && isAbsolute(clean) && hasFileExtension(clean)) {

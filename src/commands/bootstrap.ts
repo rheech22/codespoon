@@ -10,7 +10,7 @@ import type { FrameworkCandidate } from '../adapters/framework/index.js';
 import { buildCreatePrompt } from '../daemon/create-node.js';
 import { runAgentLoop } from '../daemon/agent-loop.js';
 import { OpencodeAdapter } from '../adapters/agent/opencode.js';
-import { validateNodeContent } from '../core/validation.js';
+import { validateNodeFile } from '../core/validation.js';
 import { generateGraph } from '../core/graph.js';
 import { buildAutoCommitMessage } from '../core/commit.js';
 
@@ -136,22 +136,25 @@ async function applyCandidates(
     console.log(pc.cyan(`  생성 중: ${candidate.id}...`));
 
     const result = await runAgentLoop({
-      buildPrompt: () => buildCreatePrompt({
+      buildPrompt: (previousErrors) => buildCreatePrompt({
         id: candidate.id,
         entry: candidate.entry,
         sources: candidate.sources,
         config,
+        nodePath,
+        validationErrors: previousErrors,
+        isRetry: !!previousErrors,
       }),
       agent,
-      validate: (output) => validateNodeContent(output, { rootDir: root, config, filePath: nodePath }),
+      validate: () => validateNodeFile(nodePath, root, config),
       config,
       repoRoot: root,
       runDir,
       identifier: candidate.id,
+      expectedPath: nodePath,
     });
 
-    if (result.success && result.finalContent) {
-      writeFileSync(nodePath, result.finalContent, 'utf-8');
+    if (result.success) {
       appliedCount++;
       console.log(pc.green(`  ✓ ${candidate.id}`));
     } else {
