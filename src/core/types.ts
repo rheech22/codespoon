@@ -52,10 +52,10 @@ export const REQUIRED_SECTIONS = [
 ] as const;
 
 export interface NodeDocument {
-  filePath: string;
   frontmatter: Frontmatter;
   body: string;
-  raw: string;
+  title: string;
+  path: string;
 }
 
 export interface GraphNode {

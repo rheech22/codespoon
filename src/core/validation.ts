@@ -1,5 +1,5 @@
 import { readFileSync, existsSync } from 'node:fs';
-import { join, isAbsolute, relative } from 'node:path';
+import { join, isAbsolute } from 'node:path';
 import matter from 'gray-matter';
 import pm from 'picomatch';
 import { FrontmatterSchema, REQUIRED_SECTIONS } from './types.js';
@@ -36,13 +36,6 @@ export interface CheckContext {
 
 type Check = (ctx: CheckContext) => ValidationMessage[];
 
-function displayPath(ctx: CheckContext): string {
-  if (ctx.filePath) {
-    return relative(ctx.rootDir, ctx.filePath);
-  }
-  return '(string)';
-}
-
 function hasFileExtension(word: string): boolean {
   return /\.[a-zA-Z]\w+$/.test(word);
 }
@@ -51,11 +44,6 @@ const checkFrontmatterExists: Check = (ctx) => {
   if (!ctx.frontmatter) {
     return [{ type: 'error', file: ctx.filePath, message: 'Frontmatter is empty or missing' }];
   }
-  return [];
-};
-
-const checkFrontmatterSchema: Check = (ctx) => {
-  if (!ctx.frontmatter) return [];
   return [];
 };
 
@@ -228,21 +216,20 @@ export function validateNodeContent(
 
   ctx.body = parsed.content;
 
+  const schemaErrors: ValidationMessage[] = [];
+
   if (parsed.data && Object.keys(parsed.data).length > 0) {
     const result = FrontmatterSchema.safeParse(parsed.data);
     if (result.success) {
       ctx.frontmatter = result.data;
     } else {
-      const msgs: ValidationMessage[] = [];
       for (const issue of result.error.issues) {
-        msgs.push({ type: 'error', file: opts.filePath, message: `Frontmatter: ${issue.path.join('.')} — ${issue.message}` });
+        schemaErrors.push({ type: 'error', file: opts.filePath, message: `Frontmatter: ${issue.path.join('.')} — ${issue.message}` });
       }
-      const hasError = msgs.some(m => m.type === 'error');
-      return { passed: !hasError, messages: msgs };
     }
   }
 
-  const messages = CHECKS.flatMap(check => check(ctx));
+  const messages = [...schemaErrors, ...CHECKS.flatMap(check => check(ctx))];
   const hasError = messages.some(m => m.type === 'error');
   return { passed: !hasError, messages };
 }

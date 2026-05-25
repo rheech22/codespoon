@@ -85,6 +85,29 @@ describe('checkGeneratedPaths', () => {
   });
 });
 
+describe('checkFrontmatterSchema (R4: schema failure continues to CHECKS)', () => {
+
+  it('produces schema error and still runs other checks', () => {
+    const raw = fixture('schema-error/node.md');
+    const result = validateNodeContent(raw, { rootDir: resolve(fixturesDir, 'schema-error'), config });
+    expect(result.passed).toBe(false);
+    const schemaErrors = result.messages.filter(m => m.message.startsWith('Frontmatter:'));
+    expect(schemaErrors.length).toBeGreaterThan(0);
+    expect(schemaErrors.some(e => e.message.includes('scope'))).toBe(true);
+    const otherChecks = result.messages.filter(m => !m.message.startsWith('Frontmatter:'));
+    expect(otherChecks.length).toBeGreaterThan(0);
+  });
+});
+
+describe('checkSourcesSymbols', () => {
+
+  it('warns when source has empty symbols', () => {
+    const raw = fixture('empty-symbols/node.md');
+    const result = validateNodeContent(raw, { rootDir: resolve(fixturesDir, 'empty-symbols'), config });
+    expect(result.messages.some(m => m.type === 'warning' && m.message.includes('no symbols'))).toBe(true);
+  });
+});
+
 describe('checkOpenQuestions', () => {
 
   it('warns when Open Questions is empty', () => {

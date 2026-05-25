@@ -27,7 +27,7 @@ cli.command('init', 'Create config file and directory structure')
   .option('--dir <path>', 'Target directory (default: cwd)', { default: '.' })
   .option('--write-gitignore', 'Auto-add .gitignore entries')
   .action((options: { dir?: string; writeGitignore?: boolean }) => {
-    const dir = options.dir || '.';
+    const dir = options.dir!;
     const result = runInit({ dir, writeGitignore: !!options.writeGitignore });
     renderInitResult(result);
     if (!options.writeGitignore) {
@@ -40,7 +40,7 @@ cli.command('validate [...files]', 'Validate knowledge nodes')
   .option('--strict', 'Treat warnings as errors')
   .option('--json', 'Output as JSON')
   .action((files: string[], options: { dir?: string; strict?: boolean; json?: boolean }) => {
-    const dir = options.dir || '.';
+    const dir = options.dir!;
     const result = runValidate({ dir, strict: !!options.strict, files: files || [] });
     if (options.json) {
       renderValidateResultJson(result);
@@ -53,7 +53,7 @@ cli.command('validate [...files]', 'Validate knowledge nodes')
 cli.command('build', 'Regenerate graph.json from node files')
   .option('--dir <path>', 'Repository root directory (default: cwd)', { default: '.' })
   .action((options: { dir?: string }) => {
-    const dir = options.dir || '.';
+    const dir = options.dir!;
     const result = runBuild({ dir });
     renderBuildResult(result);
   });

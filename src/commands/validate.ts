@@ -1,5 +1,6 @@
 import { resolve, relative } from 'node:path';
 import fg from 'fast-glob';
+import pc from 'picocolors';
 import { validateNodeFile, summarizeResults } from '../core/validation.js';
 import { loadConfig } from '../core/config.js';
 import { nodesDir } from '../core/paths.js';
@@ -19,7 +20,11 @@ export interface ValidateRunResult {
 
 export function runValidate(options: ValidateOptions): ValidateRunResult {
   const root = resolve(options.dir);
-  const { config } = loadConfig(root);
+  const loadResult = loadConfig(root);
+  if (!loadResult.config) {
+    return { exitCode: 1, summary: { total: 0, passed: 0, failed: 0, errors: [{ type: 'error', message: loadResult.error!.message }], warnings: [] }, results: [] };
+  }
+  const config = loadResult.config;
 
   let targets: string[];
 
@@ -39,21 +44,21 @@ export function runValidate(options: ValidateOptions): ValidateRunResult {
 
 export function renderValidateResult(root: string, result: ValidateRunResult): void {
   for (const msg of result.summary.errors) {
-    console.log(`\x1b[31m×\x1b[0m ${shortPath(msg.file || '', root)}: ${msg.message}`);
+    console.log(`${pc.red('×')} ${shortPath(msg.file || '', root)}: ${msg.message}`);
   }
   for (const msg of result.summary.warnings) {
-    console.log(`\x1b[33m!\x1b[0m ${shortPath(msg.file || '', root)}: ${msg.message}`);
+    console.log(`${pc.yellow('!')} ${shortPath(msg.file || '', root)}: ${msg.message}`);
   }
 
   const all = result.summary.total;
   const ok = result.summary.passed;
   const err = result.summary.failed;
   if (all === 0) {
-    console.log('\x1b[33m→\x1b[0m 검증할 노드가 없습니다');
+    console.log(`${pc.yellow('→')} 검증할 노드가 없습니다`);
   } else if (err === 0) {
-    console.log(`\x1b[32m✓ ${ok}/${all} 노드 통과\x1b[0m`);
+    console.log(`${pc.green(`✓ ${ok}/${all} 노드 통과`)}`);
   } else {
-    console.log(`\x1b[31m× ${err}/${all} 노드 실패, ${ok}/${all} 노드 통과\x1b[0m`);
+    console.log(`${pc.red(`× ${err}/${all} 노드 실패, ${ok}/${all} 노드 통과`)}`);
   }
 }
 
