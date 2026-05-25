@@ -1,11 +1,11 @@
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { dirname } from 'node:path';
+import pc from 'picocolors';
 import { isRunning, spawnDaemon, stopDaemon, socketPath, readPid } from '../daemon/lifecycle.js';
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __dirname = resolve(__filename, '..');
 
 export interface DaemonStatusResult {
   running: boolean;
@@ -45,11 +45,11 @@ export function stopDaemonCli(): { success: boolean; message: string } {
 
 export function renderDaemonStatus(result: DaemonStatusResult): void {
   if (result.running) {
-    console.log(`✓ 데몬 실행 중 (PID: ${result.pid})`);
+    console.log(`${pc.green('✓')} 데몬 실행 중 (PID: ${result.pid})`);
   } else {
-    console.log('× 데몬이 실행 중이지 않습니다');
+    console.log(`${pc.red('×')} 데몬이 실행 중이지 않습니다`);
   }
   if (result.socketExists) {
-    console.log(`✓ socket: ${socketPath()}`);
+    console.log(`${pc.green('✓')} socket: ${socketPath()}`);
   }
 }

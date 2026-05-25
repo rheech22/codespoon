@@ -4,7 +4,11 @@ import { homedir } from 'node:os';
 import { spawn } from 'node:child_process';
 
 export function daemonDir(): string {
-  const dir = resolve(homedir(), '.codespoon');
+  return resolve(homedir(), '.codespoon');
+}
+
+export function ensureDaemonDir(): string {
+  const dir = daemonDir();
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true });
   }
@@ -20,6 +24,7 @@ export function socketPath(): string {
 }
 
 export function writePid(): void {
+  ensureDaemonDir();
   writeFileSync(pidPath(), String(process.pid), 'utf-8');
 }
 
@@ -57,9 +62,11 @@ export function stopDaemon(): boolean {
     process.kill(pid, 'SIGTERM');
   } catch {
   }
-  try {
-    unlinkSync(pidPath());
-  } catch {
-  }
+  cleanup();
   return true;
+}
+
+export function cleanup(): void {
+  try { unlinkSync(pidPath()); } catch {}
+  try { unlinkSync(socketPath()); } catch {}
 }

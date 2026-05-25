@@ -1,8 +1,10 @@
-import { writeFileSync, existsSync, readFileSync, appendFileSync } from 'node:fs';
+import { writeFileSync, existsSync, readFileSync, appendFileSync, chmodSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { chmodSync } from 'node:fs';
-import { POST_COMMIT_HOOK } from '../templates/hooks/post-commit.js';
+import pc from 'picocolors';
+import { buildPostCommitHook } from '../templates/hooks/post-commit.js';
 import { AGENTS_MD_INJECTION } from '../templates/agents-md-injection.js';
+import { loadConfig } from '../core/config.js';
+import { socketPath } from '../daemon/lifecycle.js';
 
 export interface InstallHookOptions {
   dir: string;
@@ -24,6 +26,9 @@ export function runInstallHook(options: InstallHookOptions): InstallHookResult {
     errors: [],
   };
 
+  const { config } = loadConfig(root);
+  const knowledgeDir = config.knowledge_dir;
+
   const gitHooksDir = resolve(root, '.git', 'hooks');
   const hookPath = resolve(gitHooksDir, 'post-commit');
 
@@ -38,11 +43,12 @@ export function runInstallHook(options: InstallHookOptions): InstallHookResult {
       result.errors.push('post-commit hook이 이미 설치되어 있습니다');
       return result;
     }
-    result.errors.push('.git/hooks/post-commit이 이미 존재하지만 CodeSpoon hook이 아닙니다. 수동 병합이 필요합니다.');
+    result.errors.push('.git/hooks/post-commit이 이미 존재하지만 CodeSpoon hook이 아닙니다. --force 옵션으로 덮어쓰거나 직접 병합하세요.');
     return result;
   }
 
-  writeFileSync(hookPath, POST_COMMIT_HOOK, 'utf-8');
+  const hookContent = buildPostCommitHook(knowledgeDir, socketPath());
+  writeFileSync(hookPath, hookContent, 'utf-8');
   chmodSync(hookPath, 0o755);
   result.hookInstalled = true;
 
@@ -72,15 +78,15 @@ export function runInstallHook(options: InstallHookOptions): InstallHookResult {
 
 export function renderInstallHookResult(result: InstallHookResult): void {
   if (result.hookInstalled) {
-    console.log('✓ .git/hooks/post-commit 설치됨');
+    console.log(`${pc.green('✓')} .git/hooks/post-commit 설치됨`);
   }
   if (result.agentsMdUpdated) {
-    console.log('✓ AGENTS.md에 spoon 안내 추가됨');
+    console.log(`${pc.green('✓')} AGENTS.md에 spoon 안내 추가됨`);
   }
   if (result.claudeMdUpdated) {
-    console.log('✓ CLAUDE.md에 spoon 안내 추가됨');
+    console.log(`${pc.green('✓')} CLAUDE.md에 spoon 안내 추가됨`);
   }
   for (const err of result.errors) {
-    console.log(`! ${err}`);
+    console.log(`${pc.yellow('!')} ${err}`);
   }
 }

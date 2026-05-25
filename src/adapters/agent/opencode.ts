@@ -13,12 +13,18 @@ export class OpencodeAdapter implements AgentAdapter {
         '--model', opts.model,
         prompt,
       ], {
-        timeout: opts.timeoutMs,
         stdio: ['ignore', 'pipe', 'pipe'],
       });
 
       let stdout = '';
       let stderr = '';
+
+      const timer = setTimeout(() => {
+        proc.kill('SIGTERM');
+        setTimeout(() => {
+          try { proc.kill('SIGKILL'); } catch {}
+        }, 5000);
+      }, opts.timeoutMs);
 
       proc.stdout.on('data', (chunk: Buffer) => {
         stdout += chunk.toString();
@@ -29,6 +35,7 @@ export class OpencodeAdapter implements AgentAdapter {
       });
 
       proc.on('close', (exitCode) => {
+        clearTimeout(timer);
         const durationMs = Date.now() - start;
         resolve({
           stdout,
@@ -39,6 +46,7 @@ export class OpencodeAdapter implements AgentAdapter {
       });
 
       proc.on('error', (err) => {
+        clearTimeout(timer);
         reject(new Error(`Failed to spawn opencode: ${err.message}`));
       });
     });

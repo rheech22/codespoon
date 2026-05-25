@@ -3,7 +3,6 @@ import { resolve } from 'node:path';
 import { readFileSync } from 'node:fs';
 import { validateNodeContent, summarizeResults } from '../src/core/validation.js';
 import { DEFAULTS } from '../src/core/config.js';
-import type { CodespoonConfig } from '../src/core/config.js';
 
 const fixturesDir = resolve(__dirname, 'fixtures');
 const config = DEFAULTS;

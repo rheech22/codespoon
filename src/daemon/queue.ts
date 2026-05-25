@@ -1,3 +1,5 @@
+import { getLogger } from '../core/logger.js';
+
 export interface DaemonJob {
   type: 'process';
   repo: string;
@@ -35,7 +37,7 @@ export class JobQueue {
     try {
       await this.handler(job);
     } catch (err) {
-      console.error(`[daemon:queue] Error processing ${job.repo}@${job.sha}:`, err);
+      getLogger().error(`[daemon:queue] Error processing ${job.repo}@${job.sha}:`, err);
     } finally {
       this.inFlight.set(repo, false);
       this.tryProcess(repo);
@@ -51,13 +53,5 @@ export class JobQueue {
       total += q.length;
     }
     return total;
-  }
-
-  getInFlight(repo?: string): boolean {
-    if (repo) return this.inFlight.get(repo) ?? false;
-    for (const v of this.inFlight.values()) {
-      if (v) return true;
-    }
-    return false;
   }
 }

@@ -2,19 +2,20 @@
 
 import { cac } from 'cac';
 import { readFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
+import pc from 'picocolors';
 import { runInit, renderInitResult, renderGitignoreHint } from './commands/init.js';
 import { runValidate, renderValidateResult, renderValidateResultJson } from './commands/validate.js';
 import { runBuild, renderBuildResult } from './commands/build.js';
 import { runInstallHook, renderInstallHookResult } from './commands/install-hook.js';
 import { checkDaemonStatus, startDaemon, stopDaemonCli, renderDaemonStatus } from './commands/daemon.js';
 import { sendProcessRequest } from './commands/process.js';
+import { sendNotifyHook } from './commands/notify-hook.js';
+import { dirnameFromUrl } from './core/paths.js';
 
 const cli = cac('codespoon');
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __dirname = dirnameFromUrl(import.meta.url);
 
 let pkg: { version: string };
 try {
@@ -75,9 +76,19 @@ cli.command('process <sha>', 'Manually trigger processing for a commit')
     const dir = options.dir!;
     const result = await sendProcessRequest({ dir, sha });
     if (result.success) {
-      console.log(`✓ ${result.message}`);
+      console.log(`${pc.green('✓')} ${result.message}`);
     } else {
-      console.log(`× ${result.message}`);
+      console.log(`${pc.red('×')} ${result.message}`);
+    }
+  });
+
+cli.command('notify-hook <sha>', 'Notify daemon from post-commit hook (internal)')
+  .option('--dir <path>', 'Repository root directory (default: cwd)', { default: '.' })
+  .action(async (sha: string, options: { dir?: string }) => {
+    const dir = options.dir!;
+    const result = await sendNotifyHook({ dir, sha });
+    if (!result.success) {
+      process.exit(1);
     }
   });
 
@@ -88,18 +99,18 @@ cli.command('daemon', 'Daemon lifecycle management').action(() => {
 cli.command('daemon start', 'Start the daemon').action(() => {
   const result = startDaemon();
   if (result.success) {
-    console.log(`✓ ${result.message}`);
+    console.log(`${pc.green('✓')} ${result.message}`);
   } else {
-    console.log(`× ${result.message}`);
+    console.log(`${pc.red('×')} ${result.message}`);
   }
 });
 
 cli.command('daemon stop', 'Stop the daemon').action(() => {
   const result = stopDaemonCli();
   if (result.success) {
-    console.log(`✓ ${result.message}`);
+    console.log(`${pc.green('✓')} ${result.message}`);
   } else {
-    console.log(`× ${result.message}`);
+    console.log(`${pc.red('×')} ${result.message}`);
   }
 });
 

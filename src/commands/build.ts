@@ -16,11 +16,10 @@ export interface BuildRunResult {
 
 export function runBuild(options: BuildOptions): BuildRunResult {
   const root = resolve(options.dir);
-  const loadResult = loadConfig(root);
-  if (!loadResult.config) {
-    throw new Error(loadResult.error!.message);
+  const { config, error } = loadConfig(root);
+  if (error && error.type !== 'not-found') {
+    throw new Error(error.message);
   }
-  const config = loadResult.config;
 
   const graph = generateGraph(root, config);
   const outputPath = resolve(root, config.knowledge_dir, 'graph.json');

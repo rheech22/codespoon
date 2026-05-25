@@ -1,19 +1,6 @@
 export const AUTO_TRAILER = 'Codespoon-Auto: true';
 export const COMMIT_PREFIX = 'docs(codespoon): auto-update for';
 
-export interface AutoCommitOptions {
-  shortOriginalSha: string;
-  affectedNodeIds: string[];
-  pathsToStage: string[];
-}
-
-export interface CommitResult {
-  sha: string;
-  success: boolean;
-  retries: number;
-  error?: string;
-}
-
 export function buildAutoCommitMessage(opts: {
   shortOriginalSha: string;
   affectedNodeIds: string[];

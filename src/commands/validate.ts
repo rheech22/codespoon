@@ -20,11 +20,10 @@ export interface ValidateRunResult {
 
 export function runValidate(options: ValidateOptions): ValidateRunResult {
   const root = resolve(options.dir);
-  const loadResult = loadConfig(root);
-  if (!loadResult.config) {
-    return { exitCode: 1, summary: { total: 0, passed: 0, failed: 0, errors: [{ type: 'error', message: loadResult.error!.message }], warnings: [] }, results: [] };
+  const { config, error } = loadConfig(root);
+  if (error && error.type !== 'not-found') {
+    return { exitCode: 1, summary: { total: 0, passed: 0, failed: 0, errors: [{ type: 'error', message: error.message }], warnings: [] }, results: [] };
   }
-  const config = loadResult.config;
 
   let targets: string[];
 

@@ -1,5 +1,10 @@
-import { resolve } from 'node:path';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { CodespoonConfig } from './config.js';
+
+export function dirnameFromUrl(importMetaUrl: string): string {
+  return dirname(fileURLToPath(importMetaUrl));
+}
 
 export function knowledgeDir(repoRoot: string, config: CodespoonConfig): string {
   return resolve(repoRoot, config.knowledge_dir);

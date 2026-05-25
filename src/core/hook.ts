@@ -1,13 +1,14 @@
+import { AUTO_TRAILER, isKnowledgeDirOnly } from './commit.js';
+
 export function shouldSkipDueToTrailer(lastCommitMessage: string): boolean {
-  return lastCommitMessage.includes('Codespoon-Auto: true');
+  return lastCommitMessage.includes(AUTO_TRAILER);
 }
 
 export function shouldSkipDueToKnowledgeDir(
   changedFiles: string[],
   knowledgeDir: string,
 ): boolean {
-  if (changedFiles.length === 0) return false;
-  return changedFiles.every(f => f.startsWith(knowledgeDir));
+  return isKnowledgeDirOnly(changedFiles, knowledgeDir);
 }
 
 export function buildSocketMessage(repoPath: string, sha: string): string {
