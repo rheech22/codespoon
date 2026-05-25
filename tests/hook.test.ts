@@ -4,6 +4,7 @@ import {
   shouldSkipDueToKnowledgeDir,
   buildSocketMessage,
 } from '../src/core/hook.js';
+import { buildPostCommitHook } from '../src/templates/hooks/post-commit.js';
 
 describe('shouldSkipDueToTrailer', () => {
   it('returns true when auto trailer is present', () => {
@@ -37,5 +38,33 @@ describe('buildSocketMessage', () => {
     const msg = buildSocketMessage('/repo/path', 'abc1234');
     const parsed = JSON.parse(msg);
     expect(parsed).toEqual({ type: 'process', repo: '/repo/path', sha: 'abc1234' });
+  });
+});
+
+describe('buildPostCommitHook', () => {
+  it('includes the knowledgeDir in grep pattern', () => {
+    const hook = buildPostCommitHook('docs/my-knowledge', '/tmp/test.sock');
+    expect(hook).toContain('grep -vF "docs/my-knowledge/"');
+  });
+
+  it('includes the socket path', () => {
+    const hook = buildPostCommitHook('docs/knowledge', '/tmp/test.sock');
+    expect(hook).toContain('/tmp/test.sock');
+  });
+
+  it('uses codespoon notify-hook instead of nc', () => {
+    const hook = buildPostCommitHook('docs/knowledge', '/tmp/test.sock');
+    expect(hook).toContain('codespoon notify-hook');
+    expect(hook).not.toContain('nc -U');
+  });
+
+  it('includes trailer detection', () => {
+    const hook = buildPostCommitHook('docs/knowledge', '/tmp/test.sock');
+    expect(hook).toContain('Codespoon-Auto: true');
+  });
+
+  it('uses grep -vF for fixed-string matching', () => {
+    const hook = buildPostCommitHook('docs/knowledge', '/tmp/test.sock');
+    expect(hook).toContain('grep -vF');
   });
 });

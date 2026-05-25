@@ -1,11 +1,10 @@
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import pc from 'picocolors';
 import { isRunning, spawnDaemon, stopDaemon, socketPath, readPid } from '../daemon/lifecycle.js';
+import { dirnameFromUrl } from '../core/paths.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = resolve(__filename, '..');
+const __dirname = dirnameFromUrl(import.meta.url);
 
 export interface DaemonStatusResult {
   running: boolean;

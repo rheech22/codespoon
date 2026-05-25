@@ -26,7 +26,11 @@ export function runInstallHook(options: InstallHookOptions): InstallHookResult {
     errors: [],
   };
 
-  const { config } = loadConfig(root);
+  const { config, error } = loadConfig(root);
+  if (error && error.type !== 'not-found') {
+    result.errors.push(error.message);
+    return result;
+  }
   const knowledgeDir = config.knowledge_dir;
 
   const gitHooksDir = resolve(root, '.git', 'hooks');
@@ -43,7 +47,7 @@ export function runInstallHook(options: InstallHookOptions): InstallHookResult {
       result.errors.push('post-commit hook이 이미 설치되어 있습니다');
       return result;
     }
-    result.errors.push('.git/hooks/post-commit이 이미 존재하지만 CodeSpoon hook이 아닙니다. --force 옵션으로 덮어쓰거나 직접 병합하세요.');
+    result.errors.push('.git/hooks/post-commit이 이미 존재하지만 CodeSpoon hook이 아닙니다. 기존 hook을 백업하고 다시 실행하거나 직접 병합하세요.');
     return result;
   }
 
