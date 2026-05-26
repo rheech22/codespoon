@@ -27,14 +27,14 @@ export function sendProcessRequest(options: ProcessOptions): Promise<ProcessResu
 
     client.on('error', (err: NodeJS.ErrnoException) => {
       if (err.code === 'ENOENT' || err.code === 'ECONNREFUSED') {
-        resolvePromise({ success: false, message: '데몬이 실행 중이지 않습니다. codespoon daemon start를 먼저 실행하세요.' });
+        resolvePromise({ success: false, message: 'Daemon is not running. Run `codespoon daemon start` first.' });
       } else {
-        resolvePromise({ success: false, message: `Socket 오류: ${err.message}` });
+        resolvePromise({ success: false, message: `Socket error: ${err.message}` });
       }
     });
 
     client.on('end', () => {
-      resolvePromise({ success: true, message: `처리 요청 전송됨 (${options.sha})` });
+      resolvePromise({ success: true, message: `Process request sent (${options.sha})` });
     });
   });
 }

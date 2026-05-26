@@ -61,7 +61,7 @@ export function runInit(options: InitOptions): InitResult {
       const missing = entries.filter(e => !existing.includes(e));
       if (missing.length > 0) {
         appendFileSync(gitignorePath, '\n' + missing.join('\n') + '\n');
-        created.push('.gitignore (' + missing.join(', ') + ' 추가)');
+        created.push('.gitignore (added ' + missing.join(', ') + ')');
       } else {
         skipped.push('.gitignore');
       }
@@ -76,20 +76,20 @@ export function renderInitResult(result: InitResult): void {
     console.log(pc.green('✓'), item);
   }
   for (const item of result.skipped) {
-    console.log(pc.yellow('→'), item + ' (이미 존재)');
+    console.log(pc.yellow('→'), item + ' (already exists)');
   }
   console.log();
-  console.log(pc.green('✓'), '초기화 완료');
-  console.log(pc.dim(`  저장소: ${result.root}`));
+  console.log(pc.green('✓'), 'Initialization complete');
+  console.log(pc.dim(`  repository: ${result.root}`));
 }
 
 export function renderGitignoreHint(): void {
   console.log();
-  console.log(pc.cyan('  .gitignore에 다음 항목을 추가하는 것을 권장합니다:'));
+  console.log(pc.cyan('  Recommended .gitignore entries:'));
   console.log(pc.dim('  ---'));
   for (const line of GITIGNORE_RECOMMENDATION.trim().split('\n')) {
     console.log(pc.dim(`  ${line}`));
   }
   console.log(pc.dim('  ---'));
-  console.log(pc.dim('  codespoon init --write-gitignore 로 자동 추가할 수 있습니다.'));
+  console.log(pc.dim('  Run `codespoon init --write-gitignore` to add them automatically.'));
 }

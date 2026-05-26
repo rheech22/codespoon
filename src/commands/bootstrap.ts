@@ -109,13 +109,13 @@ async function applyCandidates(
   }
 
   if (selectedIds.length === 0) {
-    console.log(pc.yellow('선택된 후보가 없습니다. candidates 파일에서 [x]로 표시하세요.'));
+    console.log(pc.yellow('No candidates selected. Mark candidates with [x] in the candidates file.'));
     return 0;
   }
 
   const selectedCandidates = allCandidates.filter(c => selectedIds.includes(c.id));
   if (selectedCandidates.length === 0) {
-    console.log(pc.yellow('선택한 후보를 찾을 수 없습니다.'));
+    console.log(pc.yellow('Selected candidates not found.'));
     return 0;
   }
 
@@ -129,11 +129,11 @@ async function applyCandidates(
   for (const candidate of selectedCandidates) {
     const nodePath = resolve(nd, `${candidate.id}.md`);
     if (existsSync(nodePath)) {
-      console.log(pc.yellow(`  건너뜀: ${candidate.id} (이미 존재)`));
+      console.log(pc.yellow(`  skipping: ${candidate.id} (already exists)`));
       continue;
     }
 
-    console.log(pc.cyan(`  생성 중: ${candidate.id}...`));
+    console.log(pc.cyan(`  creating: ${candidate.id}...`));
 
     const result = await runAgentLoop({
       buildPrompt: (previousErrors) => buildCreatePrompt({
@@ -163,7 +163,7 @@ async function applyCandidates(
   }
 
   if (appliedCount === 0) {
-    console.log(pc.yellow('생성된 노드가 없습니다.'));
+    console.log(pc.yellow('No nodes were created.'));
     return 0;
   }
 
@@ -183,18 +183,18 @@ async function applyCandidates(
   const message = buildAutoCommitMessage({ shortOriginalSha: 'bootstrap', affectedNodeIds: selectedIds });
   await vcs.commit(message);
 
-  console.log(pc.green(`✓ ${appliedCount}개 노드 생성 및 커밋 완료`));
+  console.log(pc.green(`✓ ${appliedCount} node(s) created and committed`));
   return appliedCount;
 }
 
 export function renderBootstrapResult(result: BootstrapResult): void {
   if (result.candidates.length === 0) {
-    console.log(pc.yellow('인식된 프레임워크가 없습니다. 후보를 생성할 수 없습니다.'));
+    console.log(pc.yellow('No framework detected — cannot generate candidates.'));
     return;
   }
 
-  console.log(`${pc.green('✓')} ${result.candidates.length}개 후보 생성`);
-  console.log(`   저장 위치: ${result.candidatesPath}`);
+  console.log(`${pc.green('✓')} ${result.candidates.length} candidate(s) generated`);
+  console.log(`   saved to: ${result.candidatesPath}`);
   console.log('');
 
   for (let i = 0; i < Math.min(result.candidates.length, 5); i++) {
@@ -207,10 +207,10 @@ export function renderBootstrapResult(result: BootstrapResult): void {
   }
 
   if (result.candidates.length > 5) {
-    console.log(`   ... ${result.candidates.length - 5}개 더 있음`);
+    console.log(`   ... ${result.candidates.length - 5} more`);
   }
 
   if (result.applied !== undefined) {
-    console.log(`${pc.green('✓')} ${result.applied}개 노드 적용됨`);
+    console.log(`${pc.green('✓')} ${result.applied} node(s) applied`);
   }
 }

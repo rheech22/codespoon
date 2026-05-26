@@ -32,5 +32,5 @@ export function runBuild(options: BuildOptions): BuildRunResult {
 
 export function renderBuildResult(result: BuildRunResult): void {
   const g = result.graph;
-  console.log(`${pc.green('✓')} graph.json 생성 (${g.nodes.length} nodes, ${g.sources.length} sources, ${g.edges.length} edges)`);
+  console.log(`${pc.green('✓')} graph.json generated (${g.nodes.length} nodes, ${g.sources.length} sources, ${g.edges.length} edges)`);
 }

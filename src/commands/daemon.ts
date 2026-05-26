@@ -22,31 +22,31 @@ export function checkDaemonStatus(): DaemonStatusResult {
 export function startDaemon(): { success: boolean; message: string } {
   const status = checkDaemonStatus();
   if (status.running) {
-    return { success: false, message: '데몬이 이미 실행 중입니다' };
+    return { success: false, message: 'Daemon is already running' };
   }
 
   const distDaemon = resolve(__dirname, '../daemon/run-daemon.js');
   if (!existsSync(distDaemon)) {
-    return { success: false, message: '데몬 스크립트를 찾을 수 없습니다. build를 먼저 실행하세요.' };
+    return { success: false, message: 'Daemon script not found. Run `pnpm build` (or equivalent) first.' };
   }
 
   spawnDaemon(distDaemon);
-  return { success: true, message: '데몬을 시작했습니다' };
+  return { success: true, message: 'Daemon started' };
 }
 
 export function stopDaemonCli(): { success: boolean; message: string } {
   const stopped = stopDaemon();
   if (stopped) {
-    return { success: true, message: '데몬을 종료했습니다' };
+    return { success: true, message: 'Daemon stopped' };
   }
-  return { success: false, message: '실행 중인 데몬이 없습니다' };
+  return { success: false, message: 'No daemon is running' };
 }
 
 export function renderDaemonStatus(result: DaemonStatusResult): void {
   if (result.running) {
-    console.log(`${pc.green('✓')} 데몬 실행 중 (PID: ${result.pid})`);
+    console.log(`${pc.green('✓')} Daemon running (PID: ${result.pid})`);
   } else {
-    console.log(`${pc.red('×')} 데몬이 실행 중이지 않습니다`);
+    console.log(`${pc.red('×')} Daemon is not running`);
   }
   if (result.socketExists) {
     console.log(`${pc.green('✓')} socket: ${socketPath()}`);

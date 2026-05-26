@@ -128,19 +128,19 @@ function buildSnippet(body: string, matchPos: number): string {
 
 export function renderSpoonResult(hits: SpoonHit[], query: string): void {
   if (hits.length === 0) {
-    console.log(`"${query}"에 일치하는 노드가 없습니다.`);
+    console.log(`No nodes match "${query}".`);
     return;
   }
 
-  console.log(`${pc.cyan('spoon')} "${query}" — 상위 ${hits.length}개 결과`);
+  console.log(`${pc.cyan('spoon')} "${query}" — top ${hits.length} result(s)`);
   console.log('');
 
   for (let i = 0; i < hits.length; i++) {
     const hit = hits[i];
     console.log(`${pc.green(`${i + 1}.`)} ${pc.bold(hit.title)} (${pc.yellow(hit.nodeId)})`);
-    console.log(`   경로: ${hit.path}`);
-    console.log(`   점수: ${hit.score}`);
-    console.log(`   일치: ${hit.matches.join(', ')}`);
+    console.log(`   path: ${hit.path}`);
+    console.log(`   score: ${hit.score}`);
+    console.log(`   matches: ${hit.matches.join(', ')}`);
     console.log('');
     console.log(`   ${hit.bodySnippet}`);
     console.log('');

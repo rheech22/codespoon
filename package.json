@@ -1,19 +1,50 @@
 {
   "name": "codespoon",
   "version": "0.1.0",
-  "description": "A spoonful of source-traced code context",
+  "description": "Living source-traced code documentation maintained automatically by your coding agent",
+  "keywords": [
+    "documentation",
+    "knowledge-graph",
+    "ai",
+    "agent",
+    "opencode",
+    "claude-code",
+    "cursor",
+    "codex",
+    "code-knowledge",
+    "living-docs",
+    "source-traced",
+    "cli"
+  ],
+  "homepage": "https://github.com/rheech22/codespoon#readme",
+  "bugs": {
+    "url": "https://github.com/rheech22/codespoon/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rheech22/codespoon.git"
+  },
+  "license": "MIT",
+  "author": "Aiden <rheech22@gmail.com>",
   "type": "module",
   "bin": {
     "codespoon": "./dist/cli.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "AGENTS.md",
+    "LICENSE"
   ],
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "build": "tsc",
     "dev": "tsx src/cli.ts",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "prepublishOnly": "pnpm run build && pnpm run test"
   },
   "dependencies": {
     "cac": "^6.7.14",

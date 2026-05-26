@@ -38,17 +38,17 @@ export function runInstallHook(options: InstallHookOptions): InstallHookResult {
   const hookPath = resolve(gitHooksDir, 'post-commit');
 
   if (!existsSync(gitHooksDir)) {
-    result.errors.push('.git/hooks 디렉터리를 찾을 수 없습니다');
+    result.errors.push('.git/hooks directory not found');
     return result;
   }
 
   if (existsSync(hookPath)) {
     const existing = readFileSync(hookPath, 'utf-8');
     if (existing.includes('Codespoon-Auto')) {
-      result.errors.push('post-commit hook이 이미 설치되어 있습니다');
+      result.errors.push('post-commit hook is already installed');
       return result;
     }
-    result.errors.push('.git/hooks/post-commit이 이미 존재하지만 CodeSpoon hook이 아닙니다. 기존 hook을 백업하고 다시 실행하거나 직접 병합하세요.');
+    result.errors.push('.git/hooks/post-commit already exists but is not a CodeSpoon hook. Back up the existing hook and re-run, or merge manually.');
     return result;
   }
 
@@ -83,14 +83,14 @@ export function runInstallHook(options: InstallHookOptions): InstallHookResult {
 
 export function renderInstallHookResult(result: InstallHookResult): void {
   if (result.hookInstalled) {
-    console.log(`${pc.green('✓')} .git/hooks/post-commit 설치됨`);
-    console.log(`${pc.cyan('→')} codespoon이 PATH에 있는지 확인하세요: ${pc.dim('`which codespoon`')}`);
+    console.log(`${pc.green('✓')} .git/hooks/post-commit installed`);
+    console.log(`${pc.cyan('→')} Make sure codespoon is on your PATH: ${pc.dim('`which codespoon`')}`);
   }
   if (result.agentsMdUpdated) {
-    console.log(`${pc.green('✓')} AGENTS.md에 spoon 안내 추가됨`);
+    console.log(`${pc.green('✓')} Added spoon guidance to AGENTS.md`);
   }
   if (result.claudeMdUpdated) {
-    console.log(`${pc.green('✓')} CLAUDE.md에 spoon 안내 추가됨`);
+    console.log(`${pc.green('✓')} Added spoon guidance to CLAUDE.md`);
   }
   for (const err of result.errors) {
     console.log(`${pc.yellow('!')} ${err}`);

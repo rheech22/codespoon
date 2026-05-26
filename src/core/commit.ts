@@ -11,8 +11,8 @@ export function buildAutoCommitMessage(opts: {
   const lines: string[] = [
     `${COMMIT_PREFIX} ${opts.shortOriginalSha}`,
     '',
-    `영향 노드: ${opts.affectedNodeIds.join(', ')}`,
-    `원본 commit: ${opts.shortOriginalSha}`,
+    `Affected nodes: ${opts.affectedNodeIds.join(', ')}`,
+    `Source commit: ${opts.shortOriginalSha}`,
     '',
     AUTO_TRAILER,
   ];

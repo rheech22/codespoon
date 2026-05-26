@@ -56,11 +56,11 @@ export function renderValidateResult(root: string, result: ValidateRunResult): v
   const ok = result.summary.passed;
   const err = result.summary.failed;
   if (all === 0) {
-    console.log(`${pc.yellow('→')} 검증할 노드가 없습니다`);
+    console.log(`${pc.yellow('→')} No nodes to validate`);
   } else if (err === 0) {
-    console.log(`${pc.green(`✓ ${ok}/${all} 노드 통과`)}`);
+    console.log(`${pc.green(`✓ ${ok}/${all} node(s) passed`)}`);
   } else {
-    console.log(`${pc.red(`× ${err}/${all} 노드 실패, ${ok}/${all} 노드 통과`)}`);
+    console.log(`${pc.red(`× ${err}/${all} failed, ${ok}/${all} passed`)}`);
   }
 }
 
